@@ -1,0 +1,5 @@
+^facenet\.Rproj$
+^\.Rproj\.user$
+^data-raw$
+^cached_vggface2_weigths$
+^ccached_casia-webface_weigths$

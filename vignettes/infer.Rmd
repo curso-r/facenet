@@ -1,0 +1,79 @@
+---
+title: "Face detection and recognition inference pipeline"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Face detection and recognition inference pipeline}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+> Note: This is an R port of the original Tim Esler's tutorial [available here](https://github.com/timesler/facenet-pytorch/blob/master/examples/infer.ipynb).
+
+The following example illustrates how to use the {facenet} R package to perform face detection and recogition on an image dataset using an `Inception Resnet V1` pretrained on the `VGGFace2 dataset`.
+
+The following {torch} methods are included:
+
+- Datasets
+- Dataloaders
+- GPU/CPU processing
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = identical(Sys.getenv("TORCH_TEST", unset = "0"), "1")
+)
+```
+
+```{r setup}
+library(torch)
+library(torchvision)
+library(facenet)
+```
+
+Determine if an nvidia GPU is avaliable
+```{r}
+device_type <- if(cuda_is_available()) "cuda" else "cpu"
+device <- torch_device(device_type)
+```
+
+Running on device: `r device_type`
+
+## Define MTCNN Module
+
+Default params shown for illustration, but not needed. Note that, since MTCNN is a collection of neural nets and other code, the device must be passed in the following way to enable copying of objects when needed internally.
+
+See `help(nn_mtcnn)` for more details.
+
+```{r}
+mtcnnet <- mtcnn(
+  image_size = 160, margin = 0, min_face_size = 20,
+  thresholds = c(0.6, 0.7, 0.7), factor = 0.709, post_process = TRUE,
+  device = device
+)
+```
+
+## Define Inception Resnet V1 module
+
+Set `classify = TRUE` for pretrained classifier. For this example, we will use the model to output embeddings/CNN features. Note that for inference, it is important to set the model to eval mode.
+
+See `help(nn_inception_resnet_v1)` for more details.
+
+```{r}
+resnet <- nn_inception_resnet_v1(pretrained = 'vggface2')$eval()$to(device = device)
+```
+
+## Define a dataset and data loader
+
+We add the `idx_to_class` attribute to the dataset to enable easy recoding of label indices to identity names later one.
+
+```{r}
+collate_fn <- function(x) {
+  return(x[[1]])
+}
+
+dataset <- torchvision::image_folder_dataset('../inst/test_images')
+loader <- dataloader(dataset, collate_fn = collate_fn)
+```
+
+
