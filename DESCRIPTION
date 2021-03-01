@@ -24,3 +24,5 @@ Imports:
     magrittr,
     zeallot,
     torch
+URL: https://github.com/curso-r/facenet
+BugReports: https://github.com/curso-r/facenet/issues
