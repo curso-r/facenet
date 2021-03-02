@@ -2,7 +2,7 @@
 #' @keywords internal
 nn_basic_conv2d <- torch::nn_module(
   "BasicConv2d",
-  initialize = function( in_planes, out_planes, kernel_size, stride, padding=0) {
+  initialize = function(in_planes, out_planes, kernel_size, stride, padding=0) {
 
     self$conv = torch::nn_conv2d(
       in_planes, out_planes,
@@ -111,9 +111,9 @@ nn_block8 <- torch::nn_module(
   }
 )
 
-nn_ixed_6a <- torch::nn_module(
+nn_mixed_6a <- torch::nn_module(
   "Mixed_6a",
-  initialize = function(self) {
+  initialize = function() {
     self$branch0 = nn_basic_conv2d(256, 384, kernel_size=3, stride=2)
 
     self$branch1 = torch::nn_sequential(
@@ -135,7 +135,7 @@ nn_ixed_6a <- torch::nn_module(
 
 nn_mixed_7a <- torch::nn_module(
   "Mixed_7a",
-  initialize = function(self) {
+  initialize = function() {
     self$branch0 = torch::nn_sequential(
       nn_basic_conv2d(896, 256, kernel_size=1, stride=1),
       nn_basic_conv2d(256, 384, kernel_size=3, stride=2)
@@ -199,9 +199,9 @@ nn_inception_resnet_v1 <- torch::nn_module(
     self$classify = classify
     self$num_classes = num_classes
 
-    if(pretrained == 'vggface2') {
+    if(!is.null(pretrained) && pretrained == 'casia-webface') {
       tmp_classes = 8631
-    } else if(pretrained == 'casia-webface') {
+    } else if(!is.null(pretrained) && pretrained == 'vggface2') {
       tmp_classes = 10575
     } else if(is.null(pretrained) & self$classify & is.null(self$num_classes)) {
       value_error('If "pretrained" is not specified and "classify" is TRUE, "num_classes" must be specified')
@@ -223,7 +223,7 @@ nn_inception_resnet_v1 <- torch::nn_module(
       nn_block35(scale=0.17),
       nn_block35(scale=0.17),
     )
-    self$mixed_6a = Mixed_6a()
+    self$mixed_6a = nn_mixed_6a()
     self$repeat_2 = torch::nn_sequential(
       nn_block17(scale=0.10),
       nn_block17(scale=0.10),
@@ -236,7 +236,7 @@ nn_inception_resnet_v1 <- torch::nn_module(
       nn_block17(scale=0.10),
       nn_block17(scale=0.10),
     )
-    self$mixed_7a = Mixed_7a()
+    self$mixed_7a = nn_mixed_7a()
     self$repeat_3 = torch::nn_sequential(
       nn_block8(scale=0.20),
       nn_block8(scale=0.20),
@@ -245,10 +245,10 @@ nn_inception_resnet_v1 <- torch::nn_module(
       nn_block8(scale=0.20),
     )
     self$block8 = nn_block8(noReLU=TRUE)
-    self$avgpool_1a = nn.AdaptiveAvgPool2d(1)
+    self$avgpool_1a = torch::nn_adaptive_avg_pool2d(1)
     self$dropout = torch::nn_dropout(dropout_prob)
     self$last_linear = torch::nn_linear(1792, 512, bias=FALSE)
-    self$last_bn = nn.BatchNorm1d(512, eps=0.001, momentum=0.1, affine=TRUE)
+    self$last_bn = torch::nn_batch_norm1d(512, eps=0.001, momentum=0.1, affine=TRUE)
 
     if(!is.null(pretrained)) {
       self$logits = torch::nn_linear(512, tmp_classes)
@@ -306,9 +306,9 @@ nn_inception_resnet_v1 <- torch::nn_module(
 #' @export
 load_weights <- function(mdl, name, cache_dir = ".") {
   if(name == 'vggface2') {
-    path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180402-114759-vggface2.pt'
+    path = "https://storage.googleapis.com/torchvision-models/v2/models/vggface2.pth"
   } else if(name == 'casia-webface') {
-    path = 'https://github.com/timesler/facenet-pytorch/releases/download/v2.2.9/20180408-102900-casia-webface.pt'
+    path = "https://storage.googleapis.com/torchvision-models/v2/models/casia-webface.pth"
   } else {
     value_error('Pretrained models only exist for "vggface2" and "casia-webface"')
   }
